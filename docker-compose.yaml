@@ -1,0 +1,79 @@
+# Замените YOUR_IP_ADDRESS! Для локального запуска используйте IP-адрес роутера 192.168.*.* (см. "ipconfig" (Windows) или "ifconfig" (Linux)
+# Replace  YOUR_IP_ADDRESS! For local launch use the router IP address 192.168.*.* (look "ipconfig" (Windows) or "ifconfig" (Linux)).
+
+services:
+  node-1:
+    image: eqalpha/keydb:latest
+    container_name: node-1
+    command: >
+      keydb-server 
+      --bind 0.0.0.0
+      --port 6379
+      --cluster-enabled yes
+      --cluster-node-timeout 15000
+      --cluster-announce-ip YOUR_IP_ADDRESS
+      --cluster-announce-port 26379
+      --cluster-announce-bus-port 16379
+      --protected-mode no
+      --appendonly yes
+      --server-threads 4
+    ports:
+      - "26379:6379"
+      - "16379:16379"
+    restart: unless-stopped
+
+  node-2:
+    image: eqalpha/keydb:latest
+    container_name: node-2
+    command: >
+      keydb-server
+      --bind 0.0.0.0
+      --port 6379
+      --cluster-enabled yes
+      --cluster-node-timeout 15000
+      --cluster-announce-ip YOUR_IP_ADDRESS
+      --cluster-announce-port 26380
+      --cluster-announce-bus-port 16380
+      --protected-mode no
+      --appendonly yes
+      --server-threads 4
+    ports:
+      - "26380:6379"
+      - "16380:16379"
+    restart: unless-stopped
+
+  node-3:
+    image: eqalpha/keydb:latest
+    container_name: node-3
+    command: >
+      keydb-server 
+      --bind 0.0.0.0
+      --port 6379
+      --cluster-enabled yes
+      --cluster-node-timeout 15000
+      --cluster-announce-ip YOUR_IP_ADDRESS
+      --cluster-announce-port 26381
+      --cluster-announce-bus-port 16381
+      --protected-mode no
+      --appendonly yes
+      --server-threads 4
+    ports:
+      - "26381:6379"
+      - "16381:16379"
+    restart: unless-stopped
+
+  cluster-init:
+    image: redis:7-alpine
+    container_name: cluster-init
+    depends_on:
+      - node-1
+      - node-2
+      - node-3
+    command: >
+      sh -c "
+      echo 'Waiting for nodes to start...' &&
+      sleep 5 &&
+      echo 'Init cluster...' &&
+      redis-cli --cluster create YOUR_IP_ADDRESS:26379 YOUR_IP_ADDRESS:26380 YOUR_IP_ADDRESS:26381 --cluster-replicas 0 --cluster-yes
+      "
+    restart: on-failure
